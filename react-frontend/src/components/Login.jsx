@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, TextField, Button, Snackbar, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import BASE_URL from './baseURL';
 
 function Login() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ function Login() {
   const handleLogin = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5001/api/login', { username, password });
+      const response = await axios.post(`${BASE_URL}/api/login`, { username, password });
       localStorage.setItem('token', response.data.access_token);
       navigate('/');
     } catch (error) {

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Box, Container, Typography, Paper, Grid } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import LoadingComponent from './Loading';
+import BASE_URL from './baseURL';
 
 function APIDetails() {
   const { path } = useParams();
@@ -15,7 +16,7 @@ function APIDetails() {
     if (!token) {
       navigate('/login');
     }
-    axios.get(`http://localhost:5001/api/vulnerabilities/${path}`)
+    axios.get(`${BASE_URL}/api/vulnerabilities/${path}`)
       .then(response => {
         setDetails(response.data);
         setLoading(false);

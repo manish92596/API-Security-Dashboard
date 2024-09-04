@@ -18,6 +18,7 @@ import { Chart, ArcElement, Tooltip, Legend } from "chart.js";
 import "chart.js/auto";
 import "./Vulnerabilities.css";
 import LoadingComponent from "./Loading";
+import BASE_URL from "./baseURL";
 
 Chart.register(ArcElement, Tooltip, Legend);
 
@@ -34,7 +35,7 @@ function Vulnerabilities() {
       navigate('/login')
     }
     axios
-      .get("http://localhost:5001/api/vulnerabilities")
+      .get(`${BASE_URL}/api/vulnerabilities`)
       .then((response) => {
         const data = generateChartData(response.data);
         setVulnerabilities(response.data);
@@ -49,7 +50,7 @@ function Vulnerabilities() {
         setVulnerabilities([]);
         setLoading(false);
       });
-  }, [vulnerabilities]);
+  }, [vulnerabilities, chartData]);
 
   const handleExpandClick = (key) => {
     setExpanded((prevExpanded) => ({

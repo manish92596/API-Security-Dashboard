@@ -5,6 +5,7 @@ import APICard from './APICard';
 import './APIList.css';
 import LoadingComponent from './Loading';
 import { useNavigate } from 'react-router-dom';
+import BASE_URL from './baseURL';
 
 function APIList() {
   const [apis, setApis] = useState([]);
@@ -20,7 +21,7 @@ function APIList() {
     if (!token) {
       navigate('/login');
     }
-    axios.get('http://localhost:5001/api/routes')
+    axios.get(`${BASE_URL}/api/routes`)
       .then(response => {
         setApis(response.data);
         const newLength = response.data.length;

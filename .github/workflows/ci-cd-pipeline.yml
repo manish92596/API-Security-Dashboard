@@ -1,0 +1,157 @@
+name: CI/CD Pipeline for Flask and React
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]  # Node version updated to be compatible with your dependencies
+        python-version: [3.8]  # Python version
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # Specify your Python version
+
+    - name: Install Dependencies
+      run: |
+          python -m pip install --upgrade pip
+          pip install pytest mysql-connector-python bcrypt flask flask-jwt-extended flask-cors gunicorn
+          pip install -r scanner/requirements.txt
+          pip install -r flask-backend/requirements.txt
+          pip install pytest pytest-mock
+
+    - name: Run unit tests
+      run: |
+         cd flask-backend/tests
+         pytest test_app.py
+      continue-on-error: false  # This will cause the workflow to fail if any test fails 
+      
+    - name: Run vulnerability_Tests_module
+      run: |
+        cd scanner/tests_vulnerability_module
+        pytest unit_testing.py
+      continue-on-error: false
+
+
+    - name: run list_api_module_test  
+      run: |
+        cd scanner/test_scanner_module
+        pytest test_list_api.py
+      continue-on-error: false
+
+    - name: Test Flask application
+      run: |
+        echo "Running Flask tests..."
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install Node dependencies and build React app
+      run: |
+        cd react-frontend
+        npm install
+        
+          
+
+    - name: clone this repo into the aws ec2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          sudo mkdir -p /var/www/html
+          sudo chown -R ec2-user:ec2-user /var/www/html
+          cd /var/www/html
+          sudo yum install -y python3-pip
+          sudo yum update -y
+          sudo yum install git -y
+
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+          # Load nvm
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+          # Install the latest LTS version of Node.js
+          nvm install --lts
+
+          # Use the installed version
+          nvm use --lts
+
+         
+          
+          sudo systemctl stop flask.service
+          sudo systemctl stop react-frontend.service
+          sudo systemctl stop scanner.service
+
+          if [ -d "testing3" ]; then
+            echo "Repository already exists. Deleting the existing directory."
+            sudo rm -rf testing3 
+          fi
+          
+          sudo git clone https://github.com/abhisheksingh789/testing3.git
+
+          sudo chown -R ec2-user:ec2-user /var/www/html/testing3
+
+          cd /var/www/html/testing3/react-frontend/src/components
+          sudo chown ec2-user:ec2-user baseURL.js
+          sed -i "s|const BASE_URL = .*;|const BASE_URL = \"http://${{ secrets.REMOTE_HOST }}:5001\";|g" baseURL.js
+          echo "Updated baseURL.js with REMOTE_HOST"
+   
+    - name: Start  scanner server on AWS EC2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /var/www/html/testing3/scanner
+          sudo chown -R ec2-user:ec2-user /var/www/html/testing3/scanner
+          sudo pip install -r requirements.txt    
+          sudo systemctl start scanner.service
+
+
+    - name: Deploy Flask backend to AWS EC2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /var/www/html/testing3/flask-backend
+          sudo chown -R ec2-user:ec2-user /var/www/html/testing3/flask-backend
+          sudo pip install -r requirements.txt
+          sudo systemctl start flask.service
+
+
+    - name: Start React development server on AWS EC2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /var/www/html/testing3/react-frontend
+          sudo chown -R ec2-user:ec2-user /var/www/html/testing3/react-frontend
+          npm install 
+          sudo systemctl start react-frontend.service
+
+    
+
+    - name: Clean up post-deployment
+      run: |
+        echo "Deployment completed successfully."

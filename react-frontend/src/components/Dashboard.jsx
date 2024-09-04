@@ -5,7 +5,7 @@ import { Doughnut, Pie, Line, Bar } from "react-chartjs-2";
 import LoadingComponent from "./Loading";
 import { Link, useNavigate } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css'
-import Login from "./Login";
+import BASE_URL from "./baseURL";
 
 function Dashboard() {
   const [totalApis, setTotalApis] = useState(0);
@@ -82,13 +82,13 @@ function Dashboard() {
 
   const fetchData = () => {
     axios
-      .get("http://localhost:5001/api/total_apis")
+      .get(`${BASE_URL}/api/total_apis`)
       .then((response) => setTotalApis(response.data))
       .catch((error) => console.error("Error fetching total APIs:", error));
 
     // Fetch total vulnerabilities
     axios
-      .get("http://localhost:5001/api/total_vulnerabilities")
+      .get(`${BASE_URL}/api/total_vulnerabilities`)
       .then((response) => setTotalVulnerabilities(response.data))
       .catch((error) =>
         console.error("Error fetching total vulnerabilities:", error)
@@ -96,7 +96,7 @@ function Dashboard() {
 
     // Fetch code score
     axios
-      .get("http://localhost:5001/api/code_score")
+      .get(`${BASE_URL}/api/code_score`)
       .then((response) => {
         const score = response.data;
         setCodeScore(score);
@@ -115,7 +115,7 @@ function Dashboard() {
       .catch((error) => console.error("Error fetching code score:", error));
 
     axios
-      .get("http://localhost:5001/api/vulnerabilities/severity")
+      .get(`${BASE_URL}/api/vulnerabilities/severity`)
       .then((response) => {
         const labels = Object.keys(response.data);
         const backgroundColors = labels.map(
@@ -136,7 +136,7 @@ function Dashboard() {
       .catch((error) => console.error("Error fetching severity data:", error));
 
       axios
-      .get("http://localhost:5001/api/donought_chart")
+      .get(`${BASE_URL}/api/donought_chart`)
       .then((response) => {
         const labels = Object.keys(response.data);
         const data = Object.values(response.data);
@@ -163,7 +163,7 @@ function Dashboard() {
 
     // Fetch timeline data
     axios
-      .get("http://localhost:5001/api/vulnerabilities/timeline")
+      .get(`${BASE_URL}/api/vulnerabilities/timeline`)
       .then((response) => {
         setLineData({
           labels: Array.from({ length: response.data.length }, (_, i) => i + 1),
@@ -189,7 +189,7 @@ function Dashboard() {
     } else {
       fetchData();  // Only call fetchData if the token exists
     }
-  }, []);
+  }, [totalApis, totalVulnerabilities, codeScore, pieData]);
 
   if (loading) {
     return <LoadingComponent />;
